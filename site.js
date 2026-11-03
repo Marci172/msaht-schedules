@@ -1,6 +1,8 @@
 "use strict";
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const num = v => v == null ? "–" : Number(v).toLocaleString("en-US");
+const secs = (t, exact) => t == null ? "–" : (exact ? "" : "≤ ") + (t < 10 ? t.toFixed(1) : Math.round(t).toLocaleString("en-US")) + " s";
+const gpuName = s => (s || "").split(" · ")[0].replace(/ \(\d+ GB\)/, "");
 const VERDICT = { "improves the best known value": ["improves", "below best known"],
                   "equals the best known value": ["equals", "best known"],
                   "above the best known value": ["above", "above best known"] };
@@ -17,7 +19,8 @@ async function siteIndex() {
   document.getElementById("fam").innerHTML += fams.map(f => `<option>${esc(f)}</option>`).join("");
   document.getElementById("foot").insertAdjacentHTML("beforeend", ` Generated ${esc(data.generated)}.`);
   const cols = [["instance", "instance"], ["size", "jobs × machines"], ["makespan", "our makespan", 1], ["ub", "best known", 1],
-                ["lb", "lower bound", 1], ["gap", "gap", 1], ["verdict", "result"], ["solver", "solver"], ["date", "date"]];
+                ["lb", "lower bound", 1], ["gap", "gap", 1], ["verdict", "result"], ["time_to_best", "time to best", 1],
+                ["run_seconds", "run", 1], ["system", "system"], ["solver", "solver"], ["date", "date"]];
   const st = { q: "", fam: "", ver: "", sort: null, dir: 1 };
   document.getElementById("head").innerHTML = cols.map(([k, t, n]) => `<th data-k="${k}" class="${n ? "n" : ""}">${t}</th>`).join("");
   const fill = () => {
@@ -35,7 +38,9 @@ async function siteIndex() {
       return `<tr><td>${name}</td><td>${r.jobs} × ${r.machines}</td><td class="n">${num(r.makespan)}</td><td class="n">${num(r.ub)}</td>`
         + `<td class="n">${num(r.lb)}</td><td class="n">${r.gap == null ? "–" : (r.gap > 0 ? "+" : "") + r.gap.toFixed(2) + " %"}</td>`
         + `<td><span class="chip ${cls}">${label}</span></td>`
-        + `<td title="${esc(r.hardware)}${r.time_limit ? ", " + esc(r.time_limit) : ""}">${esc(r.solver)}</td><td>${esc(r.date)}</td>`
+        + `<td class="n" title="${r.time_exact ? "when the run first reached this makespan" : "first checkpoint of the run that shows it (the exact time was not recorded)"}">${secs(r.time_to_best, r.time_exact)}</td>`
+        + `<td class="n">${secs(r.run_seconds, true)}</td><td title="${esc(r.system)}">${esc(gpuName(r.system))}</td>`
+        + `<td>${esc(r.solver)}</td><td>${esc(r.date)}</td>`
         + `<td><a href="solutions/${encodeURIComponent(r.instance)}.json" download>solution</a></td></tr>`;
     }).join("");
     document.getElementById("count").textContent = `${list.length} of ${rows.length}`;
@@ -60,10 +65,11 @@ async function siteSchedule() {
   document.title = `${d.instance} Schedule`;
   const [cls, label] = VERDICT[d.verdict] || ["", ""];
   document.getElementById("title").innerHTML = `${esc(d.instance)} <span class="chip ${cls}" style="font-size:.8rem;vertical-align:middle">${label}</span>`;
-  document.getElementById("sub").textContent = `${d.solver}, ${d.hardware}${d.time_limit ? ", " + d.time_limit : ""}${d.date ? " (" + d.date + ")" : ""}.`;
+  document.getElementById("sub").textContent = `${d.solver}. System: ${d.system}.${d.date ? " Run of " + d.date + "." : ""}`;
   const crit = d.ops.reduce((n, o) => n + o[5], 0);
   document.getElementById("info").innerHTML = [`makespan ${num(d.makespan)}`, `best known ${num(d.ub)}`, `lower bound ${num(d.lb)}`,
-    d.gap == null ? "" : `gap ${(d.gap > 0 ? "+" : "") + d.gap.toFixed(2)} %`, `${d.jobs} jobs × ${d.machines} machines`,
+    d.gap == null ? "" : `gap ${(d.gap > 0 ? "+" : "") + d.gap.toFixed(2)} %`,
+    `time to best ${secs(d.time_to_best, d.time_exact)}`, `run ${secs(d.run_seconds, true)}`, `${d.jobs} jobs × ${d.machines} machines`,
     `${num(d.operations)} operations`, `${num(crit)} critical`,
     `<a href="solutions/${encodeURIComponent(d.instance)}.json" download>download (ScheduleOpt format)</a>`]
     .filter(Boolean).map(x => `<span>${x.startsWith("<a") ? x : esc(x)}</span>`).join("");
