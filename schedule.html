@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schedule Viewer</title>
+<link rel="stylesheet" href="site.css"></head>
+<body><div class="wrap">
+<header><a href="./">← all instances</a><h1 id="title">loading…</h1><p class="lead" id="sub"></p></header>
+<section class="card">
+  <div class="info" id="info"></div>
+  <div id="gbox"><canvas id="gc"></canvas></div>
+  <div class="legend"><span><span class="sw" style="background:var(--g-op)"></span>operation</span>
+    <span><span class="sw" style="background:var(--g-crit)"></span>critical (no idle time to the makespan)</span>
+    <span><span class="sw" style="background:var(--g-job)"></span>selected job</span>
+    <span>rows = machines · hover for details · click a bar to follow its job, again to clear</span></div>
+</section>
+<div id="tip" hidden></div>
+</div>
+<script src="site.js"></script>
+<script>siteSchedule();</script>
+</body></html>
