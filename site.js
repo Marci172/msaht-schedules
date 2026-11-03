@@ -8,46 +8,51 @@ const VERDICT = { "improves the best known value": ["improves", "below best know
                   "above the best known value": ["above", "above best known"] };
 
 // ---------------------------------------------------------------- index page
-async function siteIndex() {
-  const data = await (await fetch("data/index.json")).json();
+// (v: the build stamp, appended to every data URL: GitHub Pages lets browsers cache files for 10 minutes, and old data
+// with a new script showed empty columns)
+async function siteIndex(v) {
+  const data = await (await fetch(`data/index.json?v=${v}`)).json();
   const rows = data.rows;
   const cnt = k => rows.filter(r => VERDICT[r.verdict] && VERDICT[r.verdict][0] === k).length;
   document.getElementById("tiles").innerHTML = [["instances", rows.length], ["below best known", cnt("improves")],
     ["equal to best known", cnt("equals")], ["above best known", cnt("above")]]
-    .map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+    .map(([k, val]) => `<div class="tile"><div class="k">${k}</div><div class="v">${val}</div></div>`).join("");
   const fams = [...new Set(rows.map(r => r.family))];
   document.getElementById("fam").innerHTML += fams.map(f => `<option>${esc(f)}</option>`).join("");
   document.getElementById("foot").insertAdjacentHTML("beforeend", ` Generated ${esc(data.generated)}.`);
-  const cols = [["instance", "instance"], ["size", "jobs × machines"], ["makespan", "our makespan", 1], ["ub", "best known", 1],
-                ["lb", "lower bound", 1], ["gap", "gap", 1], ["verdict", "result"], ["time_to_best", "time to best", 1],
-                ["run_seconds", "run", 1], ["system", "system"], ["solver", "solver"], ["date", "date"]];
+  // (two lines per cell, so everything fits without scrolling sideways; a header sorts by its cell's first line)
+  const cols = [["instance", "instance", ""], ["makespan", "makespan", "n"], ["gap", "result", ""],
+                ["time_to_best", "time to best", "n"], ["system", "run", ""], ["date", "date", ""]];
   const st = { q: "", fam: "", ver: "", sort: null, dir: 1 };
-  document.getElementById("head").innerHTML = cols.map(([k, t, n]) => `<th data-k="${k}" class="${n ? "n" : ""}">${t}</th>`).join("");
+  document.getElementById("head").innerHTML = cols.map(([k, t, c]) => `<th data-k="${k}" class="${c}">${t}</th>`).join("")
+    + "<th></th>";
   const fill = () => {
     const q = st.q.toLowerCase();
     let list = rows.filter(r => (!q || r.instance.toLowerCase().includes(q)) && (!st.fam || r.family === st.fam)
       && (!st.ver || (VERDICT[r.verdict] || [])[0] === st.ver));
     if (st.sort) {
-      const key = r => st.sort === "size" ? r.operations : r[st.sort];
+      const key = r => st.sort === "instance" ? r.operations : r[st.sort];
       list = list.slice().sort((a, b) => { const x = key(a), y = key(b); if (x == null) return 1; if (y == null) return -1;
         return (x < y ? -1 : x > y ? 1 : 0) * st.dir; });
     }
     document.getElementById("rows").innerHTML = list.map(r => {
       const [cls, label] = VERDICT[r.verdict] || ["", "–"];
       const name = r.gantt ? `<a href="schedule.html?i=${encodeURIComponent(r.instance)}">${esc(r.instance)}</a>` : esc(r.instance);
-      return `<tr><td>${name}</td><td>${r.jobs} × ${r.machines}</td><td class="n">${num(r.makespan)}</td><td class="n">${num(r.ub)}</td>`
-        + `<td class="n">${num(r.lb)}</td><td class="n">${r.gap == null ? "–" : (r.gap > 0 ? "+" : "") + r.gap.toFixed(2) + " %"}</td>`
-        + `<td><span class="chip ${cls}">${label}</span></td>`
-        + `<td class="n" title="${r.time_exact ? "when the run first reached this makespan" : "first checkpoint of the run that shows it (the exact time was not recorded)"}">${secs(r.time_to_best, r.time_exact)}</td>`
-        + `<td class="n">${secs(r.run_seconds, true)}</td><td title="${esc(r.system)}">${esc(gpuName(r.system))}</td>`
-        + `<td>${esc(r.solver)}</td><td>${esc(r.date)}</td>`
-        + `<td><a href="solutions/${encodeURIComponent(r.instance)}.json" download>solution</a></td></tr>`;
+      const gap = r.gap == null ? "–" : (r.gap > 0 ? "+" : "") + r.gap.toFixed(2) + " %";
+      const tt = r.time_exact ? "when the run first reached this makespan"
+                              : "first checkpoint of the run that shows it (the exact time was not recorded)";
+      return `<tr><td>${name}<div class="sub">${r.jobs} × ${r.machines}</div></td>`
+        + `<td class="n">${num(r.makespan)}<div class="sub">best known ${num(r.ub)} · LB ${num(r.lb)}</div></td>`
+        + `<td><span class="chip ${cls}">${label}</span><div class="sub">gap ${gap}</div></td>`
+        + `<td class="n" title="${tt}">${secs(r.time_to_best, r.time_exact)}<div class="sub">of ${secs(r.run_seconds, true)}</div></td>`
+        + `<td title="${esc(r.system)}&#10;${esc(r.solver)}">${esc(gpuName(r.system))}<div class="sub">${esc(r.solver_short || r.solver)}</div></td>`
+        + `<td>${esc(r.date)}</td>`
+        + `<td><a href="solutions/${encodeURIComponent(r.instance)}.json" download title="schedule in ScheduleOpt's format">download</a></td></tr>`;
     }).join("");
     document.getElementById("count").textContent = `${list.length} of ${rows.length}`;
-    document.querySelectorAll("#head th").forEach(th => th.textContent = th.textContent.replace(/ [▲▼]$/, "")
+    document.querySelectorAll("#head th[data-k]").forEach(th => th.textContent = th.textContent.replace(/ [▲▼]$/, "")
       + (st.sort === th.dataset.k ? (st.dir > 0 ? " ▲" : " ▼") : ""));
   };
-  document.getElementById("head").insertAdjacentHTML("beforeend", "<th>download</th>");
   document.getElementById("q").addEventListener("input", e => { st.q = e.target.value; fill(); });
   document.getElementById("fam").addEventListener("change", e => { st.fam = e.target.value; fill(); });
   document.getElementById("ver").addEventListener("change", e => { st.ver = e.target.value; fill(); });
@@ -57,10 +62,10 @@ async function siteIndex() {
 }
 
 // ---------------------------------------------------------------- schedule page (Gantt chart)
-async function siteSchedule() {
+async function siteSchedule(v) {
   const inst = new URLSearchParams(location.search).get("i") || "";
   let d;
-  try { d = await (await fetch(`data/${encodeURIComponent(inst)}.json`)).json(); }
+  try { d = await (await fetch(`data/${encodeURIComponent(inst)}.json?v=${v}`)).json(); }
   catch (e) { document.getElementById("title").textContent = `no schedule for "${inst}"`; return; }
   document.title = `${d.instance} Schedule`;
   const [cls, label] = VERDICT[d.verdict] || ["", ""];

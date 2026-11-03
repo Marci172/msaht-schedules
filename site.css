@@ -25,7 +25,9 @@ h1 { margin:0; font-size:1.6rem; } h2 { margin:0; font-size:1.05rem; }
 table { width:100%; border-collapse:collapse; font-size:.86rem; }
 th { position:sticky; top:0; background:var(--surface); text-align:left; font-size:.7rem; letter-spacing:.05em;
   text-transform:uppercase; color:var(--muted); padding:7px 8px; border-bottom:1px solid var(--line); cursor:pointer; white-space:nowrap; }
-td { padding:5px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+td { padding:6px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+td .sub { font-size:.76rem; color:var(--muted); font-family:var(--sans); margin-top:1px; }
+td.n .sub { font-family:var(--mono); }
 td.n, th.n { text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; }
 tbody tr:nth-child(even) td { background:var(--row); }
 .chip { font-size:.72rem; font-weight:600; padding:1px 8px; border-radius:99px; border:1px solid currentColor; }
