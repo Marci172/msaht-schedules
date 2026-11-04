@@ -16,14 +16,21 @@ h1 { margin:0; font-size:1.6rem; } h2 { margin:0; font-size:1.05rem; }
 .tile .k { font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
 .tile .v { font:600 1.5rem/1.2 var(--mono); font-variant-numeric:tabular-nums; }
 .card { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:14px; display:grid; gap:10px; min-width:0; }
-.tools { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.tools { display:flex; flex-wrap:wrap; gap:10px; align-items:center; position:sticky; top:0; z-index:5; }
+.fams { display:grid; gap:16px; }
+.fam[hidden] { display:none; }
+.fhead { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 14px; }
+.fsum { color:var(--muted); font-size:.85rem; }
 .tools input, .tools select { font:inherit; font-size:.9rem; padding:5px 9px; border:1px solid var(--line); border-radius:6px;
   background:var(--bg); color:var(--fg); }
 .tools input { flex:1; min-width:160px; }
 .count { color:var(--muted); font-size:.85rem; }
-.tbox { overflow:auto; border:1px solid var(--line); border-radius:6px; max-height:70vh; }
+.tbox { overflow-x:auto; border:1px solid var(--line); border-radius:6px; }
 table { width:100%; border-collapse:collapse; font-size:.86rem; }
-th { position:sticky; top:0; background:var(--surface); text-align:left; font-size:.7rem; letter-spacing:.05em;
+.fam table { table-layout:fixed; min-width:760px; }  /* (same columns in every card) */
+.fam th:nth-child(1) { width:13%; } .fam th:nth-child(2) { width:21%; } .fam th:nth-child(3) { width:15%; }
+.fam th:nth-child(4) { width:13%; } .fam th:nth-child(5) { width:20%; } .fam th:nth-child(6) { width:10%; } .fam th:nth-child(7) { width:8%; }
+th { background:var(--surface); text-align:left; font-size:.7rem; letter-spacing:.05em;
   text-transform:uppercase; color:var(--muted); padding:7px 8px; border-bottom:1px solid var(--line); cursor:pointer; white-space:nowrap; }
 td { padding:6px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
 td .sub { font-size:.76rem; color:var(--muted); font-family:var(--sans); margin-top:1px; }

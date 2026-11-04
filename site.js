@@ -17,47 +17,65 @@ async function siteIndex(v) {
   document.getElementById("tiles").innerHTML = [["instances", rows.length], ["below best known", cnt("improves")],
     ["equal to best known", cnt("equals")], ["above best known", cnt("above")]]
     .map(([k, val]) => `<div class="tile"><div class="k">${k}</div><div class="v">${val}</div></div>`).join("");
-  const fams = [...new Set(rows.map(r => r.family))];
-  document.getElementById("fam").innerHTML += fams.map(f => `<option>${esc(f)}</option>`).join("");
+  // one card per family, stacked; the search and the result filter apply to all of them, each card sorts on its own
+  const ORDER = ["Fisher, Thompson", "Lawrence", "Adams, Balas, Zawack", "Applegate, Cook", "Storer, Wu, Vaccari",
+                 "Yamada, Nakano", "Taillard", "Demirkol", "Da Col & Teppan (tai)"];
+  const fams = [...new Set(rows.map(r => r.family))]
+    .sort((a, b) => ((ORDER.indexOf(a) + 1) || 99) - ((ORDER.indexOf(b) + 1) || 99) || a.localeCompare(b));
   document.getElementById("foot").insertAdjacentHTML("beforeend", ` Generated ${esc(data.generated)}.`);
   // (two lines per cell, so everything fits without scrolling sideways; a header sorts by its cell's first line)
   const cols = [["instance", "instance", ""], ["makespan", "makespan", "n"], ["gap", "result", ""],
                 ["time_to_best", "time to best", "n"], ["system", "run", ""], ["date", "date", ""]];
-  const st = { q: "", fam: "", ver: "", sort: null, dir: 1 };
-  document.getElementById("head").innerHTML = cols.map(([k, t, c]) => `<th data-k="${k}" class="${c}">${t}</th>`).join("")
-    + "<th></th>";
+  const st = { q: "", ver: "" };
+  const box = document.getElementById("fams");
+  const cards = fams.map((f, i) => {
+    const mine = rows.filter(r => r.family === f);
+    const c = k => mine.filter(r => (VERDICT[r.verdict] || [])[0] === k).length;
+    const parts = [["improves", "below"], ["equals", "equal"], ["above", "above"]].filter(([k]) => c(k))
+      .map(([k, t]) => `<span class="${k}">${c(k)} ${t}</span>`).join(" · ");
+    box.insertAdjacentHTML("beforeend", `<section class="card fam" id="fam${i}">
+      <div class="fhead"><h2>${esc(f)}</h2><span class="fsum">${mine.length} instance${mine.length > 1 ? "s" : ""} · ${parts}</span></div>
+      <div class="tbox"><table><thead><tr>${cols.map(([k, t, cl]) => `<th data-k="${k}" class="${cl}">${t}</th>`).join("")}<th></th></tr></thead>
+      <tbody></tbody></table></div></section>`);
+    const el = document.getElementById(`fam${i}`);
+    return { el, mine, sort: null, dir: 1 };
+  });
+  const row = r => {
+    const [cls, label] = VERDICT[r.verdict] || ["", "–"];
+    const name = r.gantt ? `<a href="schedule.html?i=${encodeURIComponent(r.instance)}">${esc(r.instance)}</a>` : esc(r.instance);
+    const gap = r.gap == null ? "–" : (r.gap > 0 ? "+" : "") + r.gap.toFixed(2) + " %";
+    const tt = r.time_exact ? "when the run first reached this makespan"
+                            : "first checkpoint of the run that shows it (the exact time was not recorded)";
+    return `<tr><td>${name}<div class="sub">${r.jobs} × ${r.machines}</div></td>`
+      + `<td class="n">${num(r.makespan)}<div class="sub">best known ${num(r.ub)} · LB ${num(r.lb)}</div></td>`
+      + `<td><span class="chip ${cls}">${label}</span><div class="sub">gap ${gap}</div></td>`
+      + `<td class="n" title="${tt}">${secs(r.time_to_best, r.time_exact)}<div class="sub">of ${secs(r.run_seconds, true)}</div></td>`
+      + `<td title="${esc(r.system)}&#10;${esc(r.solver)}">${esc(gpuName(r.system))}<div class="sub">${esc(r.solver_short || r.solver)}</div></td>`
+      + `<td>${esc(r.date)}</td>`
+      + `<td><a href="solutions/${encodeURIComponent(r.instance)}.json" download title="schedule in ScheduleOpt's format">download</a></td></tr>`;
+  };
   const fill = () => {
     const q = st.q.toLowerCase();
-    let list = rows.filter(r => (!q || r.instance.toLowerCase().includes(q)) && (!st.fam || r.family === st.fam)
-      && (!st.ver || (VERDICT[r.verdict] || [])[0] === st.ver));
-    if (st.sort) {
-      const key = r => st.sort === "instance" ? r.operations : r[st.sort];
-      list = list.slice().sort((a, b) => { const x = key(a), y = key(b); if (x == null) return 1; if (y == null) return -1;
-        return (x < y ? -1 : x > y ? 1 : 0) * st.dir; });
+    let shown = 0;
+    for (const c of cards) {
+      let list = c.mine.filter(r => (!q || r.instance.toLowerCase().includes(q)) && (!st.ver || (VERDICT[r.verdict] || [])[0] === st.ver));
+      if (c.sort) {
+        const key = r => c.sort === "instance" ? r.operations : r[c.sort];
+        list = list.slice().sort((a, b) => { const x = key(a), y = key(b); if (x == null) return 1; if (y == null) return -1;
+          return (x < y ? -1 : x > y ? 1 : 0) * c.dir; });
+      }
+      c.el.hidden = list.length === 0;
+      c.el.querySelector("tbody").innerHTML = list.map(row).join("");
+      c.el.querySelectorAll("th[data-k]").forEach(th => th.textContent = th.textContent.replace(/ [▲▼]$/, "")
+        + (c.sort === th.dataset.k ? (c.dir > 0 ? " ▲" : " ▼") : ""));
+      shown += list.length;
     }
-    document.getElementById("rows").innerHTML = list.map(r => {
-      const [cls, label] = VERDICT[r.verdict] || ["", "–"];
-      const name = r.gantt ? `<a href="schedule.html?i=${encodeURIComponent(r.instance)}">${esc(r.instance)}</a>` : esc(r.instance);
-      const gap = r.gap == null ? "–" : (r.gap > 0 ? "+" : "") + r.gap.toFixed(2) + " %";
-      const tt = r.time_exact ? "when the run first reached this makespan"
-                              : "first checkpoint of the run that shows it (the exact time was not recorded)";
-      return `<tr><td>${name}<div class="sub">${r.jobs} × ${r.machines}</div></td>`
-        + `<td class="n">${num(r.makespan)}<div class="sub">best known ${num(r.ub)} · LB ${num(r.lb)}</div></td>`
-        + `<td><span class="chip ${cls}">${label}</span><div class="sub">gap ${gap}</div></td>`
-        + `<td class="n" title="${tt}">${secs(r.time_to_best, r.time_exact)}<div class="sub">of ${secs(r.run_seconds, true)}</div></td>`
-        + `<td title="${esc(r.system)}&#10;${esc(r.solver)}">${esc(gpuName(r.system))}<div class="sub">${esc(r.solver_short || r.solver)}</div></td>`
-        + `<td>${esc(r.date)}</td>`
-        + `<td><a href="solutions/${encodeURIComponent(r.instance)}.json" download title="schedule in ScheduleOpt's format">download</a></td></tr>`;
-    }).join("");
-    document.getElementById("count").textContent = `${list.length} of ${rows.length}`;
-    document.querySelectorAll("#head th[data-k]").forEach(th => th.textContent = th.textContent.replace(/ [▲▼]$/, "")
-      + (st.sort === th.dataset.k ? (st.dir > 0 ? " ▲" : " ▼") : ""));
+    document.getElementById("count").textContent = `${shown} of ${rows.length}`;
   };
   document.getElementById("q").addEventListener("input", e => { st.q = e.target.value; fill(); });
-  document.getElementById("fam").addEventListener("change", e => { st.fam = e.target.value; fill(); });
   document.getElementById("ver").addEventListener("change", e => { st.ver = e.target.value; fill(); });
-  document.querySelectorAll("#head th[data-k]").forEach(th => th.addEventListener("click", () => {
-    st.dir = st.sort === th.dataset.k ? -st.dir : 1; st.sort = th.dataset.k; fill(); }));
+  for (const c of cards) c.el.querySelectorAll("th[data-k]").forEach(th => th.addEventListener("click", () => {
+    c.dir = c.sort === th.dataset.k ? -c.dir : 1; c.sort = th.dataset.k; fill(); }));
   fill();
 }
 

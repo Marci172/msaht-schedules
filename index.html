@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSAHT Best Schedules</title>
 <meta name="description" content="Best job shop schedules found by the MSAHT GPU solvers, checked against ScheduleOpt's instances and bounds.">
-<link rel="stylesheet" href="site.css?v=20261103232253"></head>
+<link rel="stylesheet" href="site.css?v=20261104220547"></head>
 <body><div class="wrap">
 <header>
   <h1>MSAHT best job shop schedules</h1>
@@ -12,20 +12,17 @@
   solution format.</p>
 </header>
 <section class="tiles" id="tiles"></section>
-<section class="card">
-  <div class="tools">
-    <input type="search" id="q" placeholder="search instance" aria-label="search instance">
-    <select id="fam" aria-label="family"><option value="">all families</option></select>
-    <select id="ver" aria-label="result"><option value="">all results</option>
-      <option value="improves">below best known</option><option value="equals">equal to best known</option>
-      <option value="above">above best known</option></select>
-    <span class="count" id="count"></span>
-  </div>
-  <div class="tbox"><table><thead><tr id="head"></tr></thead><tbody id="rows"></tbody></table></div>
+<section class="card tools">
+  <input type="search" id="q" placeholder="search instance" aria-label="search instance">
+  <select id="ver" aria-label="result"><option value="">all results</option>
+    <option value="improves">below best known</option><option value="equals">equal to best known</option>
+    <option value="above">above best known</option></select>
+  <span class="count" id="count"></span>
 </section>
+<div class="fams" id="fams"></div>
 <footer id="foot">Best known values: <a href="https://github.com/ScheduleOpt/benchmarks">ScheduleOpt benchmarks</a> (CC BY-SA 4.0).
   Gap = (our makespan − best known) / best known.</footer>
 </div>
-<script src="site.js?v=20261103232253"></script>
-<script>siteIndex("20261103232253");</script>
+<script src="site.js?v=20261104220547"></script>
+<script>siteIndex("20261104220547");</script>
 </body></html>
