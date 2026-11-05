@@ -47,3 +47,5 @@ tbody tr:nth-child(even) td { background:var(--row); }
   border-radius:4px; white-space:pre; z-index:10; } #tip[hidden] { display:none; }
 footer { color:var(--muted); font-size:.82rem; }
 @media (max-width:640px) { .wrap { padding:20px 16px 36px; } h1 { font-size:1.3rem; } }
+.sjst td.sjsl a { margin-right:6px; } .sjst tr.grp td { background:var(--surface); font-weight:600; font-size:.8rem;
+  color:var(--fg2); padding-top:12px; } .links { margin:0; font-size:.9rem; } #sjs[hidden] { display:none; }
