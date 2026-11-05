@@ -82,31 +82,33 @@ async function siteIndex(v) {
 }
 
 // ---------------------------------------------------------------- SJS: our own instance set (downloads only)
+// (an introduction card with the whole-set downloads, then one card per group listing every instance)
 async function siteSjs(v) {
   let d;
   try { d = await (await fetch(`data/sjs.json?v=${v}`)).json(); } catch (e) { return; }
   const mb = b => b >= 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " KB";
-  const groups = [...new Set(d.sizes.map(s => s.group))];
-  const body = groups.map(g => {
-    const rows = d.sizes.filter(s => s.group === g).map(s => {
-      const links = s.files.map((f, i) => `<a href="${esc(f.file)}" download title="${esc(f.name)} (${mb(f.bytes)})">${i + 1}</a>`).join(" ");
-      return `<tr><td>${s.prefix}_${s.jobs}_${s.machines}_k<div class="sub">${s.jobs} × ${s.machines}</div></td>`
-        + `<td class="n">${num(s.operations)}<div class="sub">processing times 1..${s.dmax}</div></td>`
-        + `<td class="dl sjsl">${links}</td></tr>`;
-    }).join("");
-    return `<tr class="grp"><td colspan="3">${esc(g)}</td></tr>` + rows;
-  }).join("");
-  const el = document.getElementById("sjs");
-  el.innerHTML = `<div class="fhead"><h2>schweminOPT Job Shop Scaling set (SJS, 2026)</h2>`
+  const box = document.getElementById("sjs");
+  box.innerHTML = `<section class="card"><div class="fhead"><h2>schweminOPT Job Shop Scaling set (SJS, 2026)</h2>`
     + `<span class="fsum">${d.instances} instances, 10 per size · no schedules yet</span></div>`
-    + `<p class="lead">Our own instances for measuring solvers across sizes and shapes, from Taillard's generator; every `
-    + `instance can be regenerated from its seeds. Same text format as above (gzip-compressed from 50,000 operations).</p>`
-    + `<p class="links"><a href="sjs/SJS2026.zip" download>whole set (zip, ${mb(d.zip_bytes)})</a> · `
+    + `<p class="lead">Our own instances for measuring solvers across sizes and shapes, from Taillard's generator: `
+    + `every instance can be regenerated from its two seeds. Same text format as above (gzip-compressed from 50,000 `
+    + `operations).</p><p class="links"><a href="sjs/SJS2026.zip" download>whole set (zip, ${mb(d.zip_bytes)})</a> · `
     + `<a href="sjs/sjs_seeds.csv" download>seeds</a> · <a href="sjs/checksums.sha256" download>checksums</a> · `
-    + `<a href="sjs/README.md">README</a></p>`
-    + `<div class="tbox"><table class="sjst"><thead><tr><th>size</th><th class="n">operations</th><th>instances 1–10</th></tr></thead>`
-    + `<tbody>${body}</tbody></table></div>`;
-  el.hidden = false;
+    + `<a href="sjs/README.md">README</a></p></section>`;
+  for (const g of [...new Set(d.sizes.map(s => s.group))]) {
+    const sizes = d.sizes.filter(s => s.group === g);
+    const n = sizes.reduce((a, s) => a + s.files.length, 0);
+    const rows = sizes.flatMap(s => s.files.map(f =>
+      `<tr><td>${esc(f.name)}<div class="sub">${s.jobs} × ${s.machines}</div></td>`
+      + `<td class="n">${num(s.operations)}<div class="sub">times 1..${s.dmax}</div></td>`
+      + `<td class="n">${f.time_seed}<div class="sub">${f.machine_seed}</div></td>`
+      + `<td class="dl"><a href="${esc(f.file)}" download>instance</a><div class="sub">${mb(f.bytes)}</div></td></tr>`)).join("");
+    box.insertAdjacentHTML("beforeend", `<section class="card"><div class="fhead"><h2>SJS · ${esc(g)}</h2>`
+      + `<span class="fsum">${n} instances · ${sizes.map(s => `${s.jobs} × ${s.machines}`).join(", ")}</span></div>`
+      + `<div class="tbox"><table class="sjst"><thead><tr><th>instance</th><th class="n">operations</th>`
+      + `<th class="n">time seed<div class="sub">machine seed</div></th><th>download</th></tr></thead>`
+      + `<tbody>${rows}</tbody></table></div></section>`);
+  }
 }
 
 // ---------------------------------------------------------------- schedule page (Gantt chart)
