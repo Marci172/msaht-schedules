@@ -52,7 +52,8 @@ async function siteIndex(v) {
       + `<td class="n" title="${tt}">${secs(r.time_to_best, r.time_exact)}<div class="sub">of ${secs(r.run_seconds, true)}</div></td>`
       + `<td title="${esc(r.system)}&#10;${esc(r.solver)}">${esc(gpuName(r.system))}<div class="sub">${esc(r.solver_short || r.solver)}</div></td>`
       + `<td>${esc(r.date)}</td>`
-      + `<td><a href="solutions/${encodeURIComponent(r.instance)}.json" download title="schedule in ScheduleOpt's format">download</a></td></tr>`;
+      + `<td class="dl"><a href="instances/${encodeURIComponent(r.instance)}.txt" download title="the instance: jobs and machines, then per job machine / duration pairs (machines from 0)">instance</a>`
+      + `<div class="sub"><a href="solutions/${encodeURIComponent(r.instance)}.json" download title="schedule in ScheduleOpt's format">schedule</a></div></td></tr>`;
   };
   const fill = () => {
     const q = st.q.toLowerCase();
@@ -94,7 +95,8 @@ async function siteSchedule(v) {
     d.gap == null ? "" : `gap ${(d.gap > 0 ? "+" : "") + d.gap.toFixed(2)} %`,
     `time to best ${secs(d.time_to_best, d.time_exact)}`, `run ${secs(d.run_seconds, true)}`, `${d.jobs} jobs × ${d.machines} machines`,
     `${num(d.operations)} operations`, `${num(crit)} critical`,
-    `<a href="solutions/${encodeURIComponent(d.instance)}.json" download>download (ScheduleOpt format)</a>`]
+    `<a href="instances/${encodeURIComponent(d.instance)}.txt" download>instance (.txt)</a>`,
+    `<a href="solutions/${encodeURIComponent(d.instance)}.json" download>schedule (ScheduleOpt format)</a>`]
     .filter(Boolean).map(x => `<span>${x.startsWith("<a") ? x : esc(x)}</span>`).join("");
   const G = { job: null, bars: [] };
   const cv = document.getElementById("gc"), box = document.getElementById("gbox"), tip = document.getElementById("tip");
