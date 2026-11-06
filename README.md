@@ -1,7 +1,7 @@
-# MSAHT best job shop schedules
+# schweminOPT best job shop schedules
 
-The best schedule per job shop instance found by the MSAHT GPU solvers, published at
-**https://marci172.github.io/msaht-schedules/** (table, interactive Gantt charts, downloads).
+The best schedule per job shop instance found by the schweminOPT GPU solvers, published at
+**https://marci172.github.io/schweminOPT-schedules/** (table, interactive Gantt charts, downloads).
 
 - Every schedule is checked against [ScheduleOpt](https://github.com/ScheduleOpt/benchmarks)'s own instance file:
   job order, machine capacity, every operation exactly once, and the makespan recomputed from the machine sequences
