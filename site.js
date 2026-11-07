@@ -1,6 +1,7 @@
 "use strict";
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const num = v => v == null ? "–" : Number(v).toLocaleString("en-US");
+const NAT = new Intl.Collator("en", { numeric: true });  // (instance names in number order: dmu9 < dmu41, tai_.._2 < tai_.._10)
 const secs = (t, exact) => t == null ? "–" : (exact ? "" : "≤ ") + (t < 10 ? t.toFixed(1) : Math.round(t).toLocaleString("en-US")) + " s";
 const gpuName = s => (s || "").split(" · ")[0].replace(/ \(\d+ GB\)/, "");
 const VERDICT = { "improves the best known value": ["improves", "below best known"],
@@ -61,8 +62,10 @@ async function siteIndex(v) {
     for (const c of cards) {
       let list = c.mine.filter(r => (!q || r.instance.toLowerCase().includes(q)) && (!st.ver || (VERDICT[r.verdict] || [])[0] === st.ver));
       if (c.sort) {
-        const key = r => c.sort === "instance" ? r.operations : r[c.sort];
-        list = list.slice().sort((a, b) => { const x = key(a), y = key(b); if (x == null) return 1; if (y == null) return -1;
+        const key = r => r[c.sort];
+        list = list.slice().sort((a, b) => {
+          if (c.sort === "instance") return NAT.compare(a.instance, b.instance) * c.dir;  // (dmu41 .. dmu80, ta01 .. ta80)
+          const x = key(a), y = key(b); if (x == null) return 1; if (y == null) return -1;
           return (x < y ? -1 : x > y ? 1 : 0) * c.dir; });
       }
       c.el.hidden = list.length === 0;
